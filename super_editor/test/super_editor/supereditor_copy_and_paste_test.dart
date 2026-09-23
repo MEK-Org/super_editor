@@ -59,6 +59,79 @@ void main() {
       expect(SuperEditorInspector.findTextInComponent(nodeId).toPlainText(), "Pasted text: This was pasted here");
     });
 
+    testWidgetsOnDesktop('keeps the collapsed caret after a single-line paste within a paragraph', (tester) async {
+      final testContext = await tester //
+          .createDocument()
+          .fromMarkdown('prefix suffix')
+          .withInputSource(TextInputSource.ime)
+          .pump();
+      final node = testContext.document.first.asTextNode;
+
+      // User order: place the caret between the words, then press the primary
+      // paste shortcut with the clipboard already populated.
+      await tester.placeCaretInParagraph(node.id, 7);
+      tester
+        ..simulateClipboard()
+        ..setSimulatedClipboardContent('paste ');
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        await tester.pressCmdV();
+      } else {
+        await tester.pressCtlV();
+      }
+
+      expect(testContext.document, equalsMarkdown('prefix paste suffix'));
+      expect(
+        SuperEditorInspector.findDocumentSelection(),
+        DocumentSelection.collapsed(
+          position: DocumentPosition(
+            nodeId: node.id,
+            nodePosition: const TextNodePosition(offset: 13),
+          ),
+        ),
+        reason: 'The caret belongs immediately after the inserted text, not at the paragraph end.',
+      );
+    });
+
+    testWidgetsOnDesktop('keeps the caret after a single-line paste replacing a paragraph selection', (tester) async {
+      final testContext = await tester //
+          .createDocument()
+          .fromMarkdown('prefix remove suffix')
+          .withInputSource(TextInputSource.ime)
+          .pump();
+      final node = testContext.document.first.asTextNode;
+
+      // User order: place the caret before "remove", hold Shift while moving
+      // right across it, then press the primary paste shortcut.
+      await tester.placeCaretInParagraph(node.id, 7);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shift);
+      for (var i = 0; i < 6; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      }
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
+      await tester.pumpAndSettle();
+
+      tester
+        ..simulateClipboard()
+        ..setSimulatedClipboardContent('paste');
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        await tester.pressCmdV();
+      } else {
+        await tester.pressCtlV();
+      }
+
+      expect(testContext.document, equalsMarkdown('prefix paste suffix'));
+      expect(
+        SuperEditorInspector.findDocumentSelection(),
+        DocumentSelection.collapsed(
+          position: DocumentPosition(
+            nodeId: node.id,
+            nodePosition: const TextNodePosition(offset: 12),
+          ),
+        ),
+        reason: 'The caret belongs immediately after the replacement text, not at the paragraph end.',
+      );
+    });
+
     testAllInputsOnDesktop('pastes multiple paragraphs', (
       tester, {
       required TextInputSource inputSource,

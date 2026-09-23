@@ -2530,18 +2530,25 @@ class PasteEditorCommand extends EditCommand {
       ]);
     }
 
-    // Place the caret at the end of the pasted content.
-    final pastedNode = document.getNodeById(previousNode.id)!;
-    // ^ re-query the node where we pasted content because nodes are immutable.
+    // Place the caret immediately after the pasted content. A single-line
+    // paste is inserted into the existing node, so that position is not the
+    // end of the paragraph when text remains downstream from the paste.
+    final pastedPosition = parsedContent.length == 1
+        ? DocumentPosition(
+            nodeId: _pastePosition.nodeId,
+            nodePosition: TextNodePosition(
+              offset: pasteTextOffset + (parsedContent.first as TextNode).text.length,
+            ),
+          )
+        : DocumentPosition(
+            nodeId: previousNode.id,
+            // Re-query the final pasted node because document nodes are immutable.
+            nodePosition: document.getNodeById(previousNode.id)!.endPosition,
+          );
 
     executor.executeCommand(
       ChangeSelectionCommand(
-        DocumentSelection.collapsed(
-          position: DocumentPosition(
-            nodeId: pastedNode.id,
-            nodePosition: pastedNode.endPosition,
-          ),
-        ),
+        DocumentSelection.collapsed(position: pastedPosition),
         SelectionChangeType.insertContent,
         SelectionReason.userInteraction,
       ),
