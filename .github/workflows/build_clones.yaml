@@ -22,7 +22,7 @@ jobs:
       - run: flutter pub get
 
       # Build the clone
-      - run: arch -x86_64 flutter build macos --debug
+      - run: flutter build macos --release
 
   build_google_docs:
     runs-on: macos-latest
@@ -45,7 +45,7 @@ jobs:
       - run: flutter pub get
 
       # Build the clone
-      - run: arch -x86_64 flutter build macos --debug
+      - run: flutter build macos --release
 
   build_medium:
     runs-on: macos-latest
@@ -91,7 +91,7 @@ jobs:
       - run: flutter pub get
 
       # Build the clone
-      - run: arch -x86_64 flutter build macos --debug
+      - run: flutter build macos --release
 
   build_slack:
     runs-on: macos-latest
@@ -114,7 +114,7 @@ jobs:
       - run: flutter pub get
 
       # Build the clone
-      - run: arch -x86_64 flutter build macos --debug
+      - run: flutter build macos --release
 
   build_quill:
     runs-on: macos-latest
@@ -137,4 +137,4 @@ jobs:
       - run: flutter pub get
 
       # Build the clone
-      - run: arch -x86_64 flutter build macos --debug
+      - run: flutter build macos --release
