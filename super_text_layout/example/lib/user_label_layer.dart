@@ -3,12 +3,12 @@ import 'package:super_text_layout/super_text_layout.dart';
 
 class TextLayoutUserLabel extends StatelessWidget {
   const TextLayoutUserLabel({
-    Key? key,
+    super.key,
     this.textLayout,
     required this.style,
     required this.label,
     this.position,
-  }) : super(key: key);
+  });
 
   final TextLayout? textLayout;
   final UserLabelStyle style;
@@ -39,10 +39,10 @@ class TextLayoutUserLabel extends StatelessWidget {
 
 class UserLabel extends StatelessWidget {
   const UserLabel({
-    Key? key,
+    super.key,
     required this.style,
     required this.label,
-  }) : super(key: key);
+  });
 
   final UserLabelStyle style;
   final String label;

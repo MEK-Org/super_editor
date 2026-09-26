@@ -10,11 +10,11 @@ const _defaultEmptySelectionHighlightWidth = 20.0;
 
 class TextLayoutSelectionHighlight extends StatelessWidget {
   const TextLayoutSelectionHighlight({
-    Key? key,
+    super.key,
     required this.textLayout,
     required this.style,
     required this.selection,
-  }) : super(key: key);
+  });
 
   final TextLayout? textLayout;
   final SelectionHighlightStyle style;
@@ -35,11 +35,11 @@ class TextLayoutSelectionHighlight extends StatelessWidget {
 
 class TextLayoutEmptyHighlight extends StatelessWidget {
   const TextLayoutEmptyHighlight({
-    Key? key,
+    super.key,
     required this.textLayout,
     required this.style,
     this.highlightWidth = _defaultEmptySelectionHighlightWidth,
-  }) : super(key: key);
+  });
 
   final TextLayout? textLayout;
   final SelectionHighlightStyle style;

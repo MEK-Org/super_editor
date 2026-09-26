@@ -18,25 +18,24 @@ import 'text_selection_layer.dart';
 /// as a guide for how to implement your own behaviors and visual effects.
 class SuperTextWithSelection extends StatefulWidget {
   SuperTextWithSelection.single({
-    Key? key,
+    super.key,
     this.textLayoutKey,
     required this.richText,
     this.textAlign = TextAlign.left,
     this.textDirection = TextDirection.ltr,
     this.textScaler,
     UserSelection? userSelection,
-  })  : userSelections = userSelection != null ? [userSelection] : const [],
-        super(key: key);
+  })  : userSelections = userSelection != null ? [userSelection] : const [];
 
   const SuperTextWithSelection.multi({
-    Key? key,
+    super.key,
     this.textLayoutKey,
     required this.richText,
     this.textAlign = TextAlign.left,
     this.textDirection = TextDirection.ltr,
     this.textScaler,
     this.userSelections = const [],
-  }) : super(key: key);
+  });
 
   /// Key attached to the inner widget that implements [TextLayout].
   final GlobalKey? textLayoutKey;
@@ -114,13 +113,12 @@ class _SuperTextWithSelectionState extends ProseTextState<SuperTextWithSelection
 
 class _RebuildOptimizedSuperTextWithSelection extends StatefulWidget {
   const _RebuildOptimizedSuperTextWithSelection({
-    Key? key,
     this.textLayoutKey,
     required this.richText,
     this.textAlign = TextAlign.left,
     this.textScaler = TextScaler.noScaling,
     required this.userSelections,
-  }) : super(key: key);
+  });
 
   final Key? textLayoutKey;
   final InlineSpan richText;

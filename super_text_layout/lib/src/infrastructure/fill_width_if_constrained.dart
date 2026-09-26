@@ -9,9 +9,9 @@ import 'package:flutter/widgets.dart';
 /// widget and use the standard widget.
 class FillWidthIfConstrained extends SingleChildRenderObjectWidget {
   const FillWidthIfConstrained({
-    Key? key,
-    required Widget child,
-  }) : super(key: key, child: child);
+    super.key,
+    required Widget super.child,
+  });
 
   @override
   RenderObject createRenderObject(BuildContext context) {

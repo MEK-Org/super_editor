@@ -5,9 +5,9 @@ import 'package:flutter/scheduler.dart';
 /// the color spectrum.
 class RainbowBuilder extends StatefulWidget {
   const RainbowBuilder({
-    Key? key,
+    super.key,
     required this.builder,
-  }) : super(key: key);
+  });
 
   final Widget Function(BuildContext, Color) builder;
 

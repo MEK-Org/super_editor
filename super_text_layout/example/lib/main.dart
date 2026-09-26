@@ -20,7 +20,7 @@ void main() {
 }
 
 class SuperTextExampleApp extends StatelessWidget {
-  const SuperTextExampleApp({Key? key}) : super(key: key);
+  const SuperTextExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class SuperTextExampleApp extends StatelessWidget {
 }
 
 class SuperTextExampleScreen extends StatefulWidget {
-  const SuperTextExampleScreen({Key? key}) : super(key: key);
+  const SuperTextExampleScreen({super.key});
 
   @override
   State<SuperTextExampleScreen> createState() => _SuperTextExampleScreenState();
@@ -385,7 +385,7 @@ class _SuperTextExampleScreenState extends State<SuperTextExampleScreen> with Ti
 }
 
 class _TypingRobotExample extends StatefulWidget {
-  const _TypingRobotExample({Key? key}) : super(key: key);
+  const _TypingRobotExample();
 
   @override
   _TypingRobotExampleState createState() => _TypingRobotExampleState();

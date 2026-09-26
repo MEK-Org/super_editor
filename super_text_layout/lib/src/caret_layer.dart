@@ -5,7 +5,7 @@ import 'text_layout.dart';
 
 class TextLayoutCaret extends StatefulWidget {
   const TextLayoutCaret({
-    Key? key,
+    super.key,
     required this.textLayout,
     this.blinkController,
     this.blinkTimingMode = BlinkTimingMode.ticker,
@@ -13,7 +13,7 @@ class TextLayoutCaret extends StatefulWidget {
     required this.style,
     required this.position,
     this.caretTracker,
-  }) : super(key: key);
+  });
 
   final TextLayout textLayout;
   final BlinkController? blinkController;
@@ -174,7 +174,7 @@ class CaretPainter extends CustomPainter {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(offset!.dx, offset!.dy, _caretStyle.width, _height!),
+        Rect.fromLTWH(offset!.dx, offset!.dy, _caretStyle.width, _height),
         // TODO: either change `Caret` to only support circular radius, or
         //       update painter to support generic geometry
         _caretStyle.borderRadius.resolve(TextDirection.ltr).topLeft,
