@@ -9,11 +9,11 @@ import 'text_layout.dart';
 /// selection.
 class TextUnderlineLayer extends StatefulWidget {
   const TextUnderlineLayer({
-    Key? key,
+    super.key,
     required this.textLayout,
     required this.style,
     required this.underlines,
-  }) : super(key: key);
+  });
 
   final TextLayout textLayout;
   final UnderlineStyle style;

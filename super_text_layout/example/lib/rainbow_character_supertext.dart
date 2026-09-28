@@ -5,9 +5,9 @@ import 'package:super_text_layout/super_text_layout.dart';
 /// Displays the given [text] with rainbow colors behind every character.
 class CharacterRainbowSuperText extends StatefulWidget {
   const CharacterRainbowSuperText({
-    Key? key,
+    super.key,
     required this.text,
-  }) : super(key: key);
+  });
 
   final TextSpan text;
 
