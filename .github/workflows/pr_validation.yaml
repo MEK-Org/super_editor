@@ -14,7 +14,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -38,7 +39,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -61,7 +63,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -84,7 +87,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -112,7 +116,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -133,7 +138,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -161,7 +167,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -181,7 +188,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -202,7 +210,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -230,7 +239,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -250,7 +260,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
       - run: flutter pub get
@@ -271,7 +282,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -296,11 +308,14 @@ jobs:
       # Checkout the PR branch
       - uses: actions/checkout@v3
 
-      # Setup Dart
-      - uses: dart-lang/setup-dart@v1
+      # Setup Flutter environment (attributed_text is a member of the Flutter pub workspace)
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.4
 
       # Install app dependencies
-      - run: dart pub get
+      - run: flutter pub get
 
       # Enforce static analysis
       - run: dart analyze
@@ -314,11 +329,14 @@ jobs:
       # Checkout the PR branch
       - uses: actions/checkout@v3
 
-      # Setup Dart
-      - uses: dart-lang/setup-dart@v1
+      # Setup Flutter environment (attributed_text is a member of the Flutter pub workspace)
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.4
 
       # Install app dependencies
-      - run: dart pub get
+      - run: flutter pub get
 
       # Run all tests
       - run: dart test
@@ -336,11 +354,14 @@ jobs:
       # Checkout the PR branch
       - uses: actions/checkout@v3
 
-      # Setup Dart environment
-      - uses: dart-lang/setup-dart@v1
+      # Setup Flutter environment (the docs website is a member of the Flutter pub workspace)
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.4
 
       # Download all the packages that the app uses
-      - run: dart pub get
+      - run: flutter pub get
 
       # Build the static site
       - run: dart run bin/super_editor_docs.dart

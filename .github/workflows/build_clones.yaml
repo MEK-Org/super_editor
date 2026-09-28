@@ -14,14 +14,15 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
       - run: flutter pub get
 
       # Build the clone
-      - run: flutter build macos --debug
+      - run: flutter build macos --release
 
   build_google_docs:
     runs-on: macos-latest
@@ -36,14 +37,15 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
       - run: flutter pub get
 
       # Build the clone
-      - run: flutter build macos --debug
+      - run: flutter build macos --release
 
   build_medium:
     runs-on: macos-latest
@@ -58,7 +60,8 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
@@ -80,14 +83,15 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
       - run: flutter pub get
 
       # Build the clone
-      - run: flutter build macos --debug
+      - run: flutter build macos --release
 
   build_slack:
     runs-on: macos-latest
@@ -102,14 +106,15 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
       - run: flutter pub get
 
       # Build the clone
-      - run: flutter build macos --debug
+      - run: flutter build macos --release
 
   build_quill:
     runs-on: macos-latest
@@ -124,11 +129,12 @@ jobs:
       # Setup Flutter environment
       - uses: subosito/flutter-action@v2
         with:
-          channel: "master"
+          channel: stable
+          flutter-version: 3.38.4
           architecture: x64
 
       # Download all the packages that the app uses
       - run: flutter pub get
 
       # Build the clone
-      - run: flutter build macos --debug
+      - run: flutter build macos --release

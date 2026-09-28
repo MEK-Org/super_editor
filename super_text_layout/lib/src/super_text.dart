@@ -23,7 +23,7 @@ import 'text_layout.dart';
 /// unnecessary repaints between your layers and the text content.
 class SuperText extends StatefulWidget {
   const SuperText({
-    Key? key,
+    super.key,
     required this.richText,
     this.textAlign = TextAlign.left,
     this.textDirection = TextDirection.ltr,
@@ -33,7 +33,7 @@ class SuperText extends StatefulWidget {
     this.layerBeneathBuilder,
     this.layerAboveBuilder,
     this.debugTrackTextBuilds = false,
-  }) : super(key: key);
+  });
 
   /// The text to display in this [SuperText] widget.
   final InlineSpan richText;
@@ -148,13 +148,10 @@ class SuperTextAnalytics extends InheritedWidget {
   }
 
   const SuperTextAnalytics({
-    Key? key,
+    super.key,
     this.trackBuilds = false,
-    required Widget child,
-  }) : super(
-          key: key,
-          child: child,
-        );
+    required super.child,
+  });
 
   final bool trackBuilds;
 
@@ -166,12 +163,12 @@ class SuperTextAnalytics extends InheritedWidget {
 
 class _SuperTextLayout extends MultiChildRenderObjectWidget {
   _SuperTextLayout({
-    Key? key,
+    super.key,
     required this.state,
     required LayoutAwareRichText text,
     required Widget foreground,
     required Widget background,
-  }) : super(key: key, children: [background, text, foreground]);
+  }) : super(children: [background, text, foreground]);
 
   final SuperTextState state;
 
@@ -361,34 +358,20 @@ class LayoutAwareRichText extends RichText {
 /// when the layout is marked invalid.
 class RenderLayoutAwareParagraph extends RenderParagraph {
   RenderLayoutAwareParagraph(
-    InlineSpan text, {
-    TextAlign textAlign = TextAlign.start,
-    required TextDirection textDirection,
-    bool softWrap = true,
-    TextOverflow overflow = TextOverflow.clip,
-    TextScaler textScaler = TextScaler.noScaling,
-    int? maxLines,
-    Locale? locale,
-    StrutStyle? strutStyle,
-    TextWidthBasis textWidthBasis = TextWidthBasis.parent,
-    TextHeightBehavior? textHeightBehavior,
-    List<RenderBox>? children,
+    super.text, {
+    super.textAlign,
+    required super.textDirection,
+    super.softWrap,
+    super.overflow,
+    super.textScaler = TextScaler.noScaling,
+    super.maxLines,
+    super.locale,
+    super.strutStyle,
+    super.textWidthBasis,
+    super.textHeightBehavior,
+    super.children,
     VoidCallback? onMarkNeedsLayout,
-  })  : _onMarkNeedsLayout = onMarkNeedsLayout,
-        super(
-          text,
-          textAlign: textAlign,
-          textDirection: textDirection,
-          softWrap: softWrap,
-          overflow: overflow,
-          textScaler: textScaler,
-          maxLines: maxLines,
-          locale: locale,
-          strutStyle: strutStyle,
-          textWidthBasis: textWidthBasis,
-          textHeightBehavior: textHeightBehavior,
-          children: children,
-        );
+  })  : _onMarkNeedsLayout = onMarkNeedsLayout;
 
   VoidCallback? get onMarkNeedsLayout => _onMarkNeedsLayout;
   VoidCallback? _onMarkNeedsLayout;
