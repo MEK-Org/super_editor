@@ -702,10 +702,10 @@ packages:
     dependency: transitive
     description:
       name: super_text_layout
-      sha256: "203409387b44c85e1d0a8e365c8a8791199b99440411f221ad02fa9fb07530b1"
+      sha256: b429d8975d05e6e5e6823083f20267e4fca6c8fbe9b257897d98cb5d78558dd9
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.21"
+    version: "0.1.22"
   sync_http:
     dependency: transitive
     description:
