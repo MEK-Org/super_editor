@@ -25,9 +25,9 @@ import 'package:super_editor/src/infrastructure/sliver_hybrid_stack.dart';
 
 import '../infrastructure/document_gestures_interaction_overrides.dart';
 
-/// Fraction of a line's first character, measured from its leading edge, within
-/// which a click places the caret before that character.
-const _lineStartCaretBias = 0.65;
+/// Fraction of a character, measured from its leading edge, within which a
+/// click places the caret before that character.
+const _caretBeforeCharacterBias = 0.65;
 
 /// Governs mouse gesture interaction with a document, such as scrolling
 /// a document with a scroll wheel, tapping to place a caret, and
@@ -705,7 +705,7 @@ Updating drag selection:
     DocumentPosition? basePosition = _dragSelectionBase;
     DocumentPosition? extentPosition = selection?.extent;
     if (selectionType == SelectionType.position && extentPosition != null) {
-      extentPosition = _biasTowardLineStart(extentPosition, extentOffsetInDocument);
+      extentPosition = _biasTowardCharacterStart(extentPosition, extentOffsetInDocument);
     }
     editorGesturesLog.fine(" - base: $basePosition, extent: $extentPosition");
 
@@ -797,16 +797,18 @@ Updating drag selection:
     if (position == null) {
       return null;
     }
-    return _biasTowardLineStart(position, docOffset);
+    return _biasTowardCharacterStart(position, docOffset);
   }
 
-  /// Moves [position] before the first character of its line when [docOffset]
-  /// sits within the leading [_lineStartCaretBias] of that character's width.
+  /// Moves [position] before the character that precedes it when [docOffset]
+  /// sits within the leading [_caretBeforeCharacterBias] of that character's
+  /// width.
   ///
-  /// The nearest-boundary mapping splits a character at its midpoint, which
-  /// makes it hard to put the caret before, or start a selection with, the
-  /// first character of a line. Every other character keeps the midpoint split.
-  DocumentPosition _biasTowardLineStart(DocumentPosition position, Offset docOffset) {
+  /// The nearest-boundary mapping splits a character at its midpoint, so a
+  /// pointer slightly past the middle of a character puts the caret after it.
+  /// Shifting the split toward the trailing edge makes it easier to put the
+  /// caret before, or start a selection with, any character.
+  DocumentPosition _biasTowardCharacterStart(DocumentPosition position, Offset docOffset) {
     final nodePosition = position.nodePosition;
     if (nodePosition is! TextNodePosition || nodePosition.offset == 0) {
       return position;
@@ -820,27 +822,26 @@ Updating drag selection:
 
     final textBefore = textComposable.getAllText().substring(0, nodePosition.offset);
     final graphemeStart = textBefore.characters.skipLast(1).string.length;
-    if (textComposable.getPositionAtStartOfLine(TextNodePosition(offset: graphemeStart)).offset != graphemeStart) {
-      // The character before the caret isn't the first character of its line.
-      return position;
-    }
 
-    final lineStart = DocumentPosition(nodeId: position.nodeId, nodePosition: TextNodePosition(offset: graphemeStart));
-    final characterRect = _docLayout.getRectForSelection(lineStart, position);
-    final lineStartCaret = _docLayout.getRectForPosition(lineStart);
-    if (characterRect == null || lineStartCaret == null) {
+    final characterStart =
+        DocumentPosition(nodeId: position.nodeId, nodePosition: TextNodePosition(offset: graphemeStart));
+    final characterRect = _docLayout.getRectForSelection(characterStart, position);
+    final characterStartCaret = _docLayout.getRectForPosition(characterStart);
+    if (characterRect == null || characterStartCaret == null) {
       return position;
     }
     if (docOffset.dy < characterRect.top || docOffset.dy > characterRect.bottom) {
       // The pointer is on a different line than the character.
       return position;
     }
-    if (lineStartCaret.left > characterRect.left + characterRect.width / 2) {
+    if (characterStartCaret.left > characterRect.left + characterRect.width / 2) {
       // Right-to-left text, where "before" is the right side. Keep the midpoint split.
       return position;
     }
 
-    return docOffset.dx < characterRect.left + characterRect.width * _lineStartCaretBias ? lineStart : position;
+    return docOffset.dx < characterRect.left + characterRect.width * _caretBeforeCharacterBias
+        ? characterStart
+        : position;
   }
 
   void _clearSelection() {

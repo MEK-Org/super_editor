@@ -54,11 +54,61 @@ void main() {
       expect(await _clickAndReadCaret(tester, _globalOffsetInCharacter(0, 0.7)), const TextNodePosition(offset: 1));
     });
 
-    testWidgetsOnDesktop("click keeps the nearest boundary for characters after the first", (tester) async {
+    testWidgetsOnDesktop("click places caret before any character within 65% of its width", (tester) async {
       await _pumpWrappingParagraph(tester);
 
-      expect(await _clickAndReadCaret(tester, _globalOffsetInCharacter(1, 0.4)), const TextNodePosition(offset: 1));
-      expect(await _clickAndReadCaret(tester, _globalOffsetInCharacter(1, 0.6)), const TextNodePosition(offset: 2));
+      for (final character in [1, 2, 7, 20]) {
+        expect(
+          await _clickAndReadCaret(tester, _globalOffsetInCharacter(character, 0.4)),
+          TextNodePosition(offset: character),
+        );
+        expect(
+          await _clickAndReadCaret(tester, _globalOffsetInCharacter(character, 0.6)),
+          TextNodePosition(offset: character),
+        );
+        expect(
+          await _clickAndReadCaret(tester, _globalOffsetInCharacter(character, 0.7)),
+          TextNodePosition(offset: character + 1),
+        );
+      }
+    });
+
+    testWidgetsOnDesktop("click biases toward the last character of a wrapped line", (tester) async {
+      await _pumpWrappingParagraph(tester);
+      final lastCharacter = _findSecondLineStart() - 1;
+
+      expect(
+        await _clickAndReadCaret(tester, _globalOffsetInCharacter(lastCharacter, 0.6)),
+        TextNodePosition(offset: lastCharacter),
+      );
+    });
+
+    testWidgetsOnDesktop("drag ending within 65% of a character stops before it", (tester) async {
+      await _pumpWrappingParagraph(tester);
+
+      final gesture = await tester.startGesture(_globalOffsetInCharacter(2, 0.2), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      await gesture.moveTo(_globalOffsetInCharacter(4, 0.4));
+      await tester.pump();
+      await gesture.moveTo(_globalOffsetInCharacter(6, 0.6));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(_selectedOffsets(), (base: 2, extent: 6));
+    });
+
+    testWidgetsOnDesktop("drag from within 65% of a mid-line character selects it", (tester) async {
+      await _pumpWrappingParagraph(tester);
+
+      final gesture = await tester.startGesture(_globalOffsetInCharacter(7, 0.6), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      await gesture.moveTo(_globalOffsetInCharacter(7, 0.95));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(_selectedOffsets(), (base: 7, extent: 8));
     });
 
     testWidgetsOnDesktop("click biases toward the first character of a wrapped line", (tester) async {
@@ -105,6 +155,22 @@ void main() {
           const TextNodePosition(offset: 2));
     });
 
+    testWidgetsOnDesktop("treats a multi-code-unit mid-line grapheme as one character", (tester) async {
+      await tester //
+          .createDocument()
+          .withCustomContent(MutableDocument(nodes: [
+            ParagraphNode(id: _nodeId, text: AttributedText("Turtles 🐢 all the way down")),
+          ]))
+          .withEditorSize(const Size(400, 400))
+          .pump();
+
+      // The turtle occupies text offsets 8 and 9.
+      expect(await _clickAndReadCaret(tester, _globalOffsetInCharacter(8, 0.6, length: 2)),
+          const TextNodePosition(offset: 8));
+      expect(await _clickAndReadCaret(tester, _globalOffsetInCharacter(8, 0.9, length: 2)),
+          const TextNodePosition(offset: 10));
+    });
+
     testWidgetsOnDesktop("shift-drag still expands from the existing selection base", (tester) async {
       await _pumpWrappingParagraph(tester);
       await tester.placeCaretInParagraph(_nodeId, 6);
@@ -118,7 +184,8 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shift);
       await tester.pumpAndSettle();
 
-      expect(_selectedOffsets(), (base: 6, extent: 2));
+      // The drag ends within 65% of the second character, so before it.
+      expect(_selectedOffsets(), (base: 6, extent: 1));
     });
   });
 }
