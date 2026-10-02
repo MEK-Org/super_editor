@@ -13,15 +13,21 @@ import 'package:super_editor/src/core/editor.dart';
 import 'package:super_editor/src/default_editor/box_component.dart';
 import 'package:super_editor/src/default_editor/document_scrollable.dart';
 import 'package:super_editor/src/default_editor/selection_upstream_downstream.dart';
+import 'package:super_editor/src/default_editor/text.dart';
 import 'package:super_editor/src/default_editor/text_tools.dart';
 import 'package:super_editor/src/document_operations/selection_operations.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
+import 'package:super_editor/src/infrastructure/composable_text.dart';
 import 'package:super_editor/src/infrastructure/documents/document_selection.dart';
 import 'package:super_editor/src/infrastructure/flutter/flutter_scheduler.dart';
 import 'package:super_editor/src/infrastructure/multi_tap_gesture.dart';
 import 'package:super_editor/src/infrastructure/sliver_hybrid_stack.dart';
 
 import '../infrastructure/document_gestures_interaction_overrides.dart';
+
+/// Fraction of a line's first character, measured from its leading edge, within
+/// which a click places the caret before that character.
+const _lineStartCaretBias = 0.65;
 
 /// Governs mouse gesture interaction with a document, such as scrolling
 /// a document with a scroll wheel, tapping to place a caret, and
@@ -98,7 +104,12 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
 
   // Tracks user drag gestures for selection purposes.
   SelectionType _selectionType = SelectionType.position;
+  // Where the pointer went down, which is before it crossed the drag slop.
+  Offset? _panDownGlobal;
   Offset? _dragStartGlobal;
+  // Where a click at [_panDownGlobal] places the caret, which anchors a drag in
+  // position selection mode.
+  DocumentPosition? _dragAnchor;
   // The selection's document position where the user started dragging an expanded selection.
   // The selection base is cached instead of continuously re-computed because components
   // can change size and position during selection.
@@ -292,7 +303,7 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
       }
     }
 
-    final docPosition = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    final docPosition = _getCaretPositionForPointer(docOffset);
     editorGesturesLog.fine(" - tapped document position: $docPosition");
     if (docPosition == null) {
       editorGesturesLog.fine("No document content at ${details.globalPosition}.");
@@ -550,6 +561,10 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
     ]);
   }
 
+  void _onPanDown(DragDownDetails details) {
+    _panDownGlobal = details.globalPosition;
+  }
+
   void _onPanStart(DragStartDetails details) {
     editorGesturesLog.info("Pan start on document, global offset: ${details.globalPosition}, device: ${details.kind}");
 
@@ -576,6 +591,15 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
       _clearSelection();
     }
 
+    if (_selectionType == SelectionType.position) {
+      // Anchor the drag where a click at mouse-down would place the caret, rather
+      // than wherever the pointer was when it crossed the drag slop.
+      final anchor = _getCaretPositionForPointer(_getDocOffsetFromGlobalOffset(_panDownGlobal ?? _dragStartGlobal!));
+      if (anchor != null && _docLayout.getComponentByNodeId(anchor.nodeId)?.isVisualSelectionSupported() == true) {
+        _dragAnchor = anchor;
+      }
+    }
+
     _focusNode.requestFocus();
   }
 
@@ -596,6 +620,12 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
 
   void _onPanEnd(DragEndDetails details) {
     editorGesturesLog.info("Pan end on document, device: $_panGestureDevice");
+    if (_dragEndGlobal == null && _dragStartGlobal != null) {
+      // The drag ended right after crossing the drag slop, which the recognizer
+      // doesn't report as an update. Select up to where the drag started.
+      _dragEndGlobal = _dragStartGlobal;
+      _updateDragSelection();
+    }
     _onDragEnd();
   }
 
@@ -607,6 +637,8 @@ class _DocumentMouseInteractorState extends State<DocumentMouseInteractor> with 
   void _onDragEnd() {
     setState(() {
       _dragStartGlobal = null;
+      _panDownGlobal = null;
+      _dragAnchor = null;
       _dragSelectionBase = null;
       _dragEndGlobal = null;
       _expandSelectionDuringDrag = false;
@@ -662,10 +694,19 @@ Updating drag selection:
       extentOffsetInDocument,
     );
 
-    _dragSelectionBase ??= selection?.base;
+    if (_dragSelectionBase == null) {
+      final regionBase = selection?.base;
+      final anchor = _dragAnchor;
+      // Prefer the region's base when it's the same text boundary, so that its
+      // affinity is kept.
+      _dragSelectionBase = anchor != null && !_isSameBoundary(anchor, regionBase) ? anchor : regionBase;
+    }
 
     DocumentPosition? basePosition = _dragSelectionBase;
     DocumentPosition? extentPosition = selection?.extent;
+    if (selectionType == SelectionType.position && extentPosition != null) {
+      extentPosition = _biasTowardLineStart(extentPosition, extentOffsetInDocument);
+    }
     editorGesturesLog.fine(" - base: $basePosition, extent: $extentPosition");
 
     if (basePosition == null || extentPosition == null) {
@@ -733,6 +774,73 @@ Updating drag selection:
     ]);
 
     editorGesturesLog.fine("Selected region: $_currentSelection");
+  }
+
+  bool _isSameBoundary(DocumentPosition a, DocumentPosition? b) {
+    if (b == null || a.nodeId != b.nodeId) {
+      return false;
+    }
+    final aPosition = a.nodePosition;
+    final bPosition = b.nodePosition;
+    if (aPosition is TextNodePosition && bPosition is TextNodePosition) {
+      return aPosition.offset == bPosition.offset;
+    }
+    return aPosition == bPosition;
+  }
+
+  /// Returns the caret position for a pointer at [docOffset].
+  ///
+  /// Clicks and the mouse-down that starts a drag both use this mapping, so a
+  /// drag anchors exactly where a click would place the caret.
+  DocumentPosition? _getCaretPositionForPointer(Offset docOffset) {
+    final position = _docLayout.getDocumentPositionNearestToOffset(docOffset);
+    if (position == null) {
+      return null;
+    }
+    return _biasTowardLineStart(position, docOffset);
+  }
+
+  /// Moves [position] before the first character of its line when [docOffset]
+  /// sits within the leading [_lineStartCaretBias] of that character's width.
+  ///
+  /// The nearest-boundary mapping splits a character at its midpoint, which
+  /// makes it hard to put the caret before, or start a selection with, the
+  /// first character of a line. Every other character keeps the midpoint split.
+  DocumentPosition _biasTowardLineStart(DocumentPosition position, Offset docOffset) {
+    final nodePosition = position.nodePosition;
+    if (nodePosition is! TextNodePosition || nodePosition.offset == 0) {
+      return position;
+    }
+
+    final component = _docLayout.getComponentByNodeId(position.nodeId);
+    if (component is! TextComposable) {
+      return position;
+    }
+    final textComposable = component as TextComposable;
+
+    final textBefore = textComposable.getAllText().substring(0, nodePosition.offset);
+    final graphemeStart = textBefore.characters.skipLast(1).string.length;
+    if (textComposable.getPositionAtStartOfLine(TextNodePosition(offset: graphemeStart)).offset != graphemeStart) {
+      // The character before the caret isn't the first character of its line.
+      return position;
+    }
+
+    final lineStart = DocumentPosition(nodeId: position.nodeId, nodePosition: TextNodePosition(offset: graphemeStart));
+    final characterRect = _docLayout.getRectForSelection(lineStart, position);
+    final lineStartCaret = _docLayout.getRectForPosition(lineStart);
+    if (characterRect == null || lineStartCaret == null) {
+      return position;
+    }
+    if (docOffset.dy < characterRect.top || docOffset.dy > characterRect.bottom) {
+      // The pointer is on a different line than the character.
+      return position;
+    }
+    if (lineStartCaret.left > characterRect.left + characterRect.width / 2) {
+      // Right-to-left text, where "before" is the right side. Keep the midpoint split.
+      return position;
+    }
+
+    return docOffset.dx < characterRect.left + characterRect.width * _lineStartCaretBias ? lineStart : position;
   }
 
   void _clearSelection() {
@@ -855,6 +963,7 @@ Updating drag selection:
           }),
           (PanGestureRecognizer recognizer) {
             recognizer
+              ..onDown = _onPanDown
               ..onStart = _onPanStart
               ..onUpdate = _onPanUpdate
               ..onEnd = _onPanEnd
