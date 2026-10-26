@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:attributed_text/attributed_text.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -16,21 +18,29 @@ import 'package:super_text_layout/super_text_layout.dart';
 /// Builds [MarkdownTableViewModel]s and [MarkdownTableComponent]s for every [TableBlockNode]
 /// in a document.
 ///
-/// The [MarkdownTableComponent] uses block level selection, which means that the table is either
-/// fully selected or not selected at all, i.e., there is no selection of individual cells.
+/// Use [TableComponentFit.adaptive] with [enableCellTextSelection] to assign
+/// adaptive widths and expose read-only cell text to Flutter's native text
+/// selection system.
 ///
 /// See [TableStyles] for the styles that can be applied to the table through a [Stylesheet].
 class MarkdownTableComponentBuilder implements ComponentBuilder {
   const MarkdownTableComponentBuilder({
     this.columnWidth = const IntrinsicColumnWidth(),
     this.fit = TableComponentFit.scale,
+    this.enableCellTextSelection = false,
   });
 
   final TableColumnWidth columnWidth;
   final TableComponentFit fit;
 
+  /// Whether users can select and copy text in individual cells.
+  final bool enableCellTextSelection;
+
   @override
-  SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {
+  SingleColumnLayoutComponentViewModel? createViewModel(
+    Document document,
+    DocumentNode node,
+  ) {
     if (node is! TableBlockNode) {
       return null;
     }
@@ -41,6 +51,7 @@ class MarkdownTableComponentBuilder implements ComponentBuilder {
       padding: EdgeInsets.zero,
       columnWidth: columnWidth,
       fit: fit,
+      enableCellTextSelection: enableCellTextSelection,
       cells: [
         for (int i = 0; i < node.rowCount; i += 1) //
           [
@@ -49,12 +60,16 @@ class MarkdownTableComponentBuilder implements ComponentBuilder {
                 nodeId: cell.id,
                 createdAt: cell.metadata[NodeMetadata.createdAt],
                 text: cell.text,
-                textAlign: _maybeParseTextAlign(cell.getMetadataValue(TextNodeMetadata.textAlign)) ?? TextAlign.left,
+                textAlign:
+                    _maybeParseTextAlign(
+                      cell.getMetadataValue(TextNodeMetadata.textAlign),
+                    ) ??
+                    TextAlign.left,
                 textStyleBuilder: noStyleBuilder,
                 padding: const EdgeInsets.all(8.0),
                 //       ^ Default padding, can be overridden through the stylesheet.
                 metadata: cell.metadata,
-              )
+              ),
           ],
       ],
       selectionColor: const Color(0x00000000),
@@ -74,7 +89,9 @@ class MarkdownTableComponentBuilder implements ComponentBuilder {
 
   @override
   Widget? createComponent(
-      SingleColumnDocumentComponentContext componentContext, SingleColumnLayoutComponentViewModel componentViewModel) {
+    SingleColumnDocumentComponentContext componentContext,
+    SingleColumnLayoutComponentViewModel componentViewModel,
+  ) {
     if (componentViewModel is! MarkdownTableViewModel) {
       return null;
     }
@@ -97,7 +114,8 @@ class MarkdownTableComponentBuilder implements ComponentBuilder {
 /// various properties in the view model. For example, one phase applies
 /// all [StyleRule]s, and another phase configures content selection
 /// and caret appearance.
-class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with SelectionAwareViewModelMixin {
+class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel
+    with SelectionAwareViewModelMixin {
   MarkdownTableViewModel({
     required super.nodeId,
     required super.createdAt,
@@ -108,6 +126,7 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
     this.border,
     this.columnWidth = const IntrinsicColumnWidth(),
     this.fit = TableComponentFit.scale,
+    this.enableCellTextSelection = false,
     this.inlineWidgetBuilders = const [],
     required this.caretColor,
     DocumentNodeSelection? selection,
@@ -135,6 +154,9 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
   /// How the table responds when it wants to be wider than the available width.
   TableComponentFit fit;
 
+  /// Whether the table's text participates in native text selection.
+  bool enableCellTextSelection;
+
   /// A chain of builders that create inline widgets that can be embedded
   /// inside the table's cells.
   InlineWidgetBuilderChain inlineWidgetBuilders;
@@ -157,6 +179,7 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
       border: border,
       columnWidth: columnWidth,
       fit: fit,
+      enableCellTextSelection: enableCellTextSelection,
       inlineWidgetBuilders: inlineWidgetBuilders,
       caretColor: caretColor,
       selection: selection,
@@ -174,15 +197,20 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
     }
 
     border = styles[TableStyles.border] as TableBorder? ?? border;
-    inlineWidgetBuilders = styles[Styles.inlineWidgetBuilders] ?? inlineWidgetBuilders;
-    final inlineTextStyler = styles[Styles.inlineTextStyler] as AttributionStyleAdjuster;
+    inlineWidgetBuilders =
+        styles[Styles.inlineWidgetBuilders] ?? inlineWidgetBuilders;
+    final inlineTextStyler =
+        styles[Styles.inlineTextStyler] as AttributionStyleAdjuster;
 
-    final baseTextStyle = (styles[Styles.textStyle] ?? noStyleBuilder({})) as TextStyle;
+    final baseTextStyle =
+        (styles[Styles.textStyle] ?? noStyleBuilder({})) as TextStyle;
     final headerTextStyles = styles[TableStyles.headerTextStyle] as TextStyle?;
-    final cellDecorator = styles[TableStyles.cellDecorator] as TableCellDecorator?;
+    final cellDecorator =
+        styles[TableStyles.cellDecorator] as TableCellDecorator?;
 
     EdgeInsets cellPadding = const EdgeInsets.all(0);
-    final cascadingPadding = styles[TableStyles.cellPadding] as CascadingPadding?;
+    final cascadingPadding =
+        styles[TableStyles.cellPadding] as CascadingPadding?;
     if (cascadingPadding != null) {
       cellPadding = cascadingPadding.toEdgeInsets();
     }
@@ -195,13 +223,15 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
       headerCell.textStyleBuilder = (attributions) {
         return inlineTextStyler(
           attributions,
-          headerTextStyles != null //
+          headerTextStyles !=
+                  null //
               ? baseTextStyle.merge(headerTextStyles)
               : baseTextStyle,
         );
       };
       headerCell.padding = cellPadding;
-      headerCell.decoration = cellDecorator?.call(
+      headerCell.decoration =
+          cellDecorator?.call(
             rowIndex: 0,
             columnIndex: i,
             cellText: headerCell.text,
@@ -219,7 +249,8 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
           return inlineTextStyler(attributions, baseTextStyle);
         };
         dataCell.padding = cellPadding;
-        dataCell.decoration = cellDecorator?.call(
+        dataCell.decoration =
+            cellDecorator?.call(
               rowIndex: i,
               columnIndex: j,
               cellText: dataCell.text,
@@ -246,6 +277,7 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
           border == other.border &&
           columnWidth == other.columnWidth &&
           fit == other.fit &&
+          enableCellTextSelection == other.enableCellTextSelection &&
           const DeepCollectionEquality().equals(cells, other.cells);
 
   @override
@@ -261,12 +293,16 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel with S
       border.hashCode ^
       columnWidth.hashCode ^
       fit.hashCode ^
+      enableCellTextSelection.hashCode ^
       cells.hashCode;
 }
 
 enum TableComponentFit {
   scroll,
-  scale;
+
+  /// Fits cells to the available editor width without scaling their text.
+  adaptive,
+  scale,
 }
 
 /// View model that configures the appearance of a [MarkdownTableComponent]'s cell.
@@ -363,33 +399,43 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
   Widget build(BuildContext context) {
     return switch (widget.viewModel.fit) {
       TableComponentFit.scroll => SingleAxisTrackpadAndWheelScroller(
-          axis: Axis.horizontal,
-          controller: _scrollController,
-          child: Center(
-            child: _ScrollbarWithoutGap(
-              scrollController: _scrollController,
-              scrollbarOrientation: ScrollbarOrientation.bottom,
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                child: _buildTableComponent(
-                  table: _buildTable(context),
-                ),
-              ),
+        axis: Axis.horizontal,
+        controller: _scrollController,
+        child: Center(
+          child: _ScrollbarWithoutGap(
+            scrollController: _scrollController,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: _buildTableComponent(table: _buildTable(context)),
             ),
           ),
         ),
+      ),
       TableComponentFit.scale => _buildTableComponent(
-          table: _buildTableToScaleDown(
-            table: _buildTable(context),
-          ),
-        ),
+        table: _buildTableToScaleDown(table: _buildTable(context)),
+      ),
+      TableComponentFit.adaptive => _buildTableComponent(
+        table: _buildAdaptiveTable(context),
+      ),
     };
   }
 
-  Widget _buildTableComponent({
-    required Widget table,
-  }) {
+  Widget _buildTableComponent({required Widget table}) {
+    final component = BoxComponent(
+      key: widget.componentKey,
+      opacity: widget.viewModel.opacity,
+      child: table,
+    );
+
+    if (widget.viewModel.enableCellTextSelection) {
+      return MouseRegion(
+        cursor: SystemMouseCursors.text,
+        child: SelectionArea(child: component),
+      );
+    }
+
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
       hitTestBehavior: HitTestBehavior.translucent,
@@ -400,23 +446,20 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
         //     to select the whole table don't work. The `SelectableBox` seems to be stealing
         //     the pointer events.
         child: SelectableBox(
-          selection: widget.viewModel.selection?.nodeSelection is UpstreamDownstreamNodeSelection
-              ? widget.viewModel.selection?.nodeSelection as UpstreamDownstreamNodeSelection
+          selection:
+              widget.viewModel.selection?.nodeSelection
+                  is UpstreamDownstreamNodeSelection
+              ? widget.viewModel.selection?.nodeSelection
+                    as UpstreamDownstreamNodeSelection
               : null,
           selectionColor: widget.viewModel.selectionColor,
-          child: BoxComponent(
-            key: widget.componentKey,
-            opacity: widget.viewModel.opacity,
-            child: table,
-          ),
+          child: component,
         ),
       ),
     );
   }
 
-  Widget _buildTableToScaleDown({
-    required Widget table,
-  }) {
+  Widget _buildTableToScaleDown({required Widget table}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return FittedBox(
@@ -434,9 +477,77 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
     );
   }
 
-  Widget _buildTable(BuildContext context) {
+  Widget _buildAdaptiveTable(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.maxWidth.isFinite || widget.viewModel.cells.isEmpty) {
+          return _buildTable(context);
+        }
+
+        final columnCount = widget.viewModel.cells.first.length;
+        final availableContentWidth = math.max(
+          0.0,
+          constraints.maxWidth -
+              _verticalBorderWidth(widget.viewModel.border, columnCount),
+        );
+        final widths = calculateAdaptiveTableColumnWidths(
+          _naturalColumnWidths(context, columnCount),
+          availableContentWidth,
+        );
+
+        return _buildTable(
+          context,
+          columnWidths: {
+            for (var index = 0; index < widths.length; index += 1)
+              index: FixedColumnWidth(widths[index]),
+          },
+        );
+      },
+    );
+  }
+
+  List<double> _naturalColumnWidths(BuildContext context, int columnCount) {
+    final widths = List<double>.filled(columnCount, 0);
+    final textDirection = Directionality.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+
+    for (final row in widget.viewModel.cells) {
+      for (var index = 0; index < columnCount; index += 1) {
+        final cell = row[index];
+        final painter = TextPainter(
+          text: cell.text.computeInlineSpan(
+            context,
+            cell.textStyleBuilder,
+            widget.viewModel.inlineWidgetBuilders,
+          ),
+          textDirection: textDirection,
+          textScaler: textScaler,
+        )..layout();
+        widths[index] = math.max(
+          widths[index],
+          painter.width + cell.padding.horizontal,
+        );
+        painter.dispose();
+      }
+    }
+
+    return widths;
+  }
+
+  double _verticalBorderWidth(TableBorder? border, int columnCount) {
+    final effectiveBorder = border ?? TableBorder.all();
+    return effectiveBorder.left.width +
+        effectiveBorder.right.width +
+        effectiveBorder.verticalInside.width * math.max(0, columnCount - 1);
+  }
+
+  Widget _buildTable(
+    BuildContext context, {
+    Map<int, TableColumnWidth>? columnWidths,
+  }) {
     return Table(
       border: widget.viewModel.border ?? TableBorder.all(),
+      columnWidths: columnWidths,
       defaultColumnWidth: widget.viewModel.columnWidth,
       children: [
         for (int i = 0; i < widget.viewModel.cells.length; i += 1) //
@@ -445,7 +556,11 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
     );
   }
 
-  TableRow _buildRow(BuildContext context, List<MarkdownTableCellViewModel> row, int rowIndex) {
+  TableRow _buildRow(
+    BuildContext context,
+    List<MarkdownTableCellViewModel> row,
+    int rowIndex,
+  ) {
     return TableRow(
       children: [
         for (final cell in row) //
@@ -454,10 +569,7 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
     );
   }
 
-  Widget _buildCell(
-    BuildContext context,
-    MarkdownTableCellViewModel cell,
-  ) {
+  Widget _buildCell(BuildContext context, MarkdownTableCellViewModel cell) {
     return DecoratedBox(
       decoration: cell.decoration ?? const BoxDecoration(),
       child: Padding(
@@ -473,6 +585,41 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
       ),
     );
   }
+}
+
+/// Assigns each table column either its natural width or a share of the
+/// remaining available content width.
+///
+/// Columns whose natural width fits the current equal share are fixed from
+/// smallest to largest. The rest receive the recalculated equal share.
+@visibleForTesting
+List<double> calculateAdaptiveTableColumnWidths(
+  List<double> naturalWidths,
+  double availableWidth,
+) {
+  final widths = List<double>.filled(naturalWidths.length, 0);
+  final remaining = List<int>.generate(
+    naturalWidths.length,
+    (index) => index,
+  )..sort((left, right) => naturalWidths[left].compareTo(naturalWidths[right]));
+  var remainingWidth = availableWidth;
+
+  while (remaining.isNotEmpty) {
+    final equalShare = remainingWidth / remaining.length;
+    final next = remaining.first;
+    if (naturalWidths[next] > equalShare) {
+      for (final index in remaining) {
+        widths[index] = equalShare;
+      }
+      break;
+    }
+
+    widths[next] = naturalWidths[next];
+    remainingWidth -= naturalWidths[next];
+    remaining.removeAt(0);
+  }
+
+  return widths;
 }
 
 /// Scrollbar that internally fixes a dumb Flutter gap bug.
@@ -504,10 +651,7 @@ class _ScrollbarWithoutGap extends StatelessWidget {
       child: Scrollbar(
         controller: scrollController,
         scrollbarOrientation: scrollbarOrientation,
-        child: MediaQuery(
-          data: MediaQuery.of(context),
-          child: child,
-        ),
+        child: MediaQuery(data: MediaQuery.of(context), child: child),
       ),
     );
   }
@@ -520,9 +664,7 @@ class _ScrollbarWithoutGap extends StatelessWidget {
 /// The header row has [rowIndex] 0, the first data row has [rowIndex] 1, and so on.
 ///
 /// Returning `null` means that no decoration is applied to the row.
-typedef TableRowDecorator = BoxDecoration? Function({
-  required int rowIndex,
-});
+typedef TableRowDecorator = BoxDecoration? Function({required int rowIndex});
 
 /// A function that decorates a table cell.
 ///
@@ -530,12 +672,13 @@ typedef TableRowDecorator = BoxDecoration? Function({
 ///
 /// Returning `null` means that no decoration is applied to the cell, which means
 /// the decoration of the row is applied, if any.
-typedef TableCellDecorator = BoxDecoration? Function({
-  required int rowIndex,
-  required int columnIndex,
-  required AttributedText cellText,
-  required Map<String, dynamic> cellMetadata,
-});
+typedef TableCellDecorator =
+    BoxDecoration? Function({
+      required int rowIndex,
+      required int columnIndex,
+      required AttributedText cellText,
+      required Map<String, dynamic> cellMetadata,
+    });
 
 /// The default styles that are applied to a table through a [Stylesheet].
 ///
