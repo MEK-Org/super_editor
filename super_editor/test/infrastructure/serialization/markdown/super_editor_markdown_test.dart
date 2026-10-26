@@ -889,6 +889,47 @@ with multiple lines
 
         expect(serialized, 'Paragraph1');
       });
+
+      test('table followed by paragraph round-trips as distinct nodes with exact row count', () {
+        final doc = MutableDocument(
+          nodes: [
+            TableBlockNode(
+              id: '1',
+              cells: [
+                [
+                  TextNode(id: 'c1', text: AttributedText('Col 1')),
+                  TextNode(id: 'c2', text: AttributedText('Col 2')),
+                ],
+                [
+                  TextNode(id: 'c3', text: AttributedText('Val 1')),
+                  TextNode(id: 'c4', text: AttributedText('Val 2')),
+                ],
+              ],
+            ),
+            ParagraphNode(
+              id: '2',
+              text: AttributedText('Paragraph after table'),
+            ),
+          ],
+        );
+
+        final markdown = serializeDocumentToMarkdown(doc);
+        expect(
+          markdown,
+          '| Col 1 | Col 2 |\n'
+          '| --- | --- |\n'
+          '| Val 1 | Val 2 |\n\n'
+          'Paragraph after table',
+        );
+
+        final deserialized = deserializeMarkdownToDocument(markdown);
+        expect(deserialized.nodeCount, 2);
+        expect(deserialized.getNodeAt(0), isA<TableBlockNode>());
+        final table = deserialized.getNodeAt(0) as TableBlockNode;
+        expect(table.rowCount, 2);
+        expect(deserialized.getNodeAt(1), isA<ParagraphNode>());
+        expect((deserialized.getNodeAt(1) as ParagraphNode).text.toPlainText(), 'Paragraph after table');
+      });
     });
 
     group('deserialization', () {

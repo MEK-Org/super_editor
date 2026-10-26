@@ -711,6 +711,11 @@ class TableBlockNodeSerializer extends NodeTypedDocumentNodeMarkdownSerializer<T
       }
     }
 
+    final nodeIndex = document.getNodeIndexById(node.id);
+    if (nodeIndex != document.nodeCount - 1) {
+      buffer.writeln();
+    }
+
     return buffer.toString();
   }
 
