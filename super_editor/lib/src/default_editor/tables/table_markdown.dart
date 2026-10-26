@@ -208,12 +208,9 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel
     final cellDecorator =
         styles[TableStyles.cellDecorator] as TableCellDecorator?;
 
-    EdgeInsets cellPadding = const EdgeInsets.all(0);
     final cascadingPadding =
         styles[TableStyles.cellPadding] as CascadingPadding?;
-    if (cascadingPadding != null) {
-      cellPadding = cascadingPadding.toEdgeInsets();
-    }
+    final cellPadding = cascadingPadding?.toEdgeInsets();
 
     // Apply the styles to the header.
     final headerRow = cells[0];
@@ -229,7 +226,9 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel
               : baseTextStyle,
         );
       };
-      headerCell.padding = cellPadding;
+      if (cellPadding != null) {
+        headerCell.padding = cellPadding;
+      }
       headerCell.decoration =
           cellDecorator?.call(
             rowIndex: 0,
@@ -248,7 +247,9 @@ class MarkdownTableViewModel extends SingleColumnLayoutComponentViewModel
         dataCell.textStyleBuilder = (attributions) {
           return inlineTextStyler(attributions, baseTextStyle);
         };
-        dataCell.padding = cellPadding;
+        if (cellPadding != null) {
+          dataCell.padding = cellPadding;
+        }
         dataCell.decoration =
             cellDecorator?.call(
               rowIndex: i,
@@ -478,28 +479,33 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
   }
 
   Widget _buildAdaptiveTable(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (!constraints.maxWidth.isFinite || widget.viewModel.cells.isEmpty) {
-          return _buildTable(context);
-        }
+    return ListenableBuilder(
+      listenable: PaintingBinding.instance.systemFonts,
+      builder: (context, _) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (!constraints.maxWidth.isFinite || widget.viewModel.cells.isEmpty) {
+              return _buildTable(context);
+            }
 
-        final columnCount = widget.viewModel.cells.first.length;
-        final availableContentWidth = math.max(
-          0.0,
-          constraints.maxWidth -
-              _verticalBorderWidth(widget.viewModel.border, columnCount),
-        );
-        final widths = calculateAdaptiveTableColumnWidths(
-          _naturalColumnWidths(context, columnCount),
-          availableContentWidth,
-        );
+            final columnCount = widget.viewModel.cells.first.length;
+            final availableContentWidth = math.max(
+              0.0,
+              constraints.maxWidth -
+                  _verticalBorderWidth(widget.viewModel.border, columnCount),
+            );
+            final widths = calculateAdaptiveTableColumnWidths(
+              _naturalColumnWidths(context, columnCount),
+              availableContentWidth,
+            );
 
-        return _buildTable(
-          context,
-          columnWidths: {
-            for (var index = 0; index < widths.length; index += 1)
-              index: FixedColumnWidth(widths[index]),
+            return _buildTable(
+              context,
+              columnWidths: {
+                for (var index = 0; index < widths.length; index += 1)
+                  index: FixedColumnWidth(widths[index]),
+              },
+            );
           },
         );
       },
@@ -525,7 +531,7 @@ class _MarkdownTableComponentState extends State<MarkdownTableComponent> {
         )..layout();
         widths[index] = math.max(
           widths[index],
-          painter.width + cell.padding.horizontal,
+          painter.width.ceilToDouble() + cell.padding.horizontal,
         );
         painter.dispose();
       }
